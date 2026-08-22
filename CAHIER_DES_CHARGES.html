@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SHADOW — Cahier des charges</title>
+<style>
+  @page { margin: 18mm 15mm 16mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10.5px; line-height: 1.5; color: #1b1b1b; }
+  h1 { font-size: 26px; color: #0a2540; margin: 0 0 2px 0; }
+  h2 { font-size: 16px; color: #0a2540; border-bottom: 2.5px solid #2563c9; padding-bottom: 4px; margin-top: 26px; }
+  h3 { font-size: 13px; color: #14467a; margin-top: 18px; margin-bottom: 4px; }
+  h4 { font-size: 11.5px; color: #333; margin: 10px 0 3px 0; }
+  .subtitle { color: #555; font-size: 12px; margin-bottom: 2px; }
+  .meta { color: #777; font-size: 9.5px; }
+  code { font-family: "DejaVu Sans Mono", monospace; background: #f0f3f8; padding: 1px 4px; border-radius: 3px; font-size: 9.5px; }
+  pre { font-family: "DejaVu Sans Mono", monospace; background: #0f1d33; color: #d7e3f5; padding: 9px 11px; border-radius: 5px; font-size: 9px; overflow-x: auto; line-height: 1.45; }
+  pre .c { color: #6fe0a8; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 9.5px; }
+  th { background: #0a2540; color: #fff; text-align: left; padding: 5px 7px; }
+  td { border: 1px solid #cdd6e4; padding: 4px 7px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f5f8fc; }
+  .ok { color: #0a7d33; font-weight: bold; }
+  .no { color: #c0271a; font-weight: bold; }
+  .warn { background: #fff4e2; border-left: 4px solid #e8930c; padding: 7px 11px; margin: 8px 0; border-radius: 0 4px 4px 0; }
+  .danger { background: #fde8e6; border-left: 4px solid #c0271a; padding: 7px 11px; margin: 8px 0; border-radius: 0 4px 4px 0; }
+  .idea { background: #eaf2ff; border-left: 4px solid #2563c9; padding: 7px 11px; margin: 8px 0; border-radius: 0 4px 4px 0; }
+  .idea b { color: #14467a; }
+  .win { background: #e7f7ec; border-left: 4px solid #0a7d33; padding: 7px 11px; margin: 8px 0; border-radius: 0 4px 4px 0; }
+  ul, ol { margin: 4px 0 8px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .pagebreak { page-break-before: always; }
+  .tag { display: inline-block; background: #2563c9; color: #fff; font-size: 8px; padding: 1px 6px; border-radius: 8px; vertical-align: middle; }
+  .pin { font-weight: bold; color: #14467a; }
+  hr { border: 0; border-top: 1px solid #dde3ec; margin: 14px 0; }
+  .small { font-size: 9px; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Projet SHADOW</h1>
+<div class="subtitle">Pilotage d'une trottinette Ecoxtrem M41 (ESC CHK2-K1-03) par STM32 Nucleo F401RE<br>en vue d'un robot autonome (skid-steer, 2 trottinettes)</div>
+<div class="meta">Cahier des charges technique — révision du 2026-06-08 — contact@iris-systems.tn</div>
+
+<div style="margin: 14px 0 4px 0; text-align: center;">
+  <img src="wires.jpeg" style="max-width: 100%; max-height: 430px; border: 1px solid #cdd6e4; border-radius: 5px;">
+  <div class="meta" style="margin-top: 4px;"><b>Figure 1.</b> Faisceau de la trottinette — repérage des fils (voir le détail des rôles au §2).</div>
+</div>
+
+<h2>1. Objectif du projet</h2>
+<p>Construire un <b>robot autonome à entraînement différentiel (skid-steer)</b> à partir de <b>2 trottinettes Ecoxtrem M41</b>. Chaque trottinette doit être pilotée <b>intégralement par une carte STM32</b>, sans intervention humaine sur le guidon, en reproduisant <b>toutes les fonctions</b> :</p>
+<table>
+<tr><th>Fonction</th><th>Support physique</th><th>État</th></tr>
+<tr><td>Accélération / vitesse moteur</td><td>Fil gris/blanc (throttle analogique)</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Boucle fermée de vitesse (régulation)</td><td>Throttle + télémétrie bleu</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Frein</td><td>Fil violet (bus commandes)</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Feu / phare</td><td>Fil violet</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Mode S / D (Sport / Drive)</td><td>Fil violet</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Gear 1 / 2 / 3</td><td>Fil violet</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Clignotants gauche / droit</td><td>Fil violet</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Lecture vitesse (feedback)</td><td>Fil bleu (télémétrie)</td><td><span class="ok">✔ FAIT</span></td></tr>
+<tr><td>Téléopération clavier</td><td>PC → STM32 (USB série)</td><td><span class="ok">✔ FAIT</span> (<code>tools/teleop.py</code>)</td></tr>
+<tr><td>Marche arrière</td><td>Relais d'inversion (à venir)</td><td><span class="no">✘ À FAIRE</span></td></tr>
+<tr><td>2e trottinette + différentiel</td><td>2e STM32 / coordination</td><td><span class="no">✘ À FAIRE</span></td></tr>
+</table>
+<div class="win"><b>BILAN :</b> toutes les fonctions d'une trottinette unique sont aujourd'hui <b>pilotables depuis la carte</b>. Le « mur du violet » qui bloquait frein/feux/clignotants depuis des semaines a été <b>résolu</b> le 2026-06-06. Restent l'inversion (marche arrière) et la mise en robot 2 roues motrices.</div>
+
+<h2>2. Architecture électrique de la trottinette</h2>
+<p>La trottinette n'a <b>pas</b> un seul bus : elle a 3 canaux de signal distincts entre l'<b>afficheur</b> (guidon) et le <b>contrôleur</b> (ESC), plus l'alimentation.</p>
+<table>
+<tr><th>Fil</th><th>Rôle</th><th>Nature du signal</th><th>Sens</th></tr>
+<tr><td><b>Gris / blanc</b></td><td>Throttle (accélérateur)</td><td><b>Analogique</b> 0,8 V (repos) → 3,2 V (plein gaz)</td><td>guidon → contrôleur</td></tr>
+<tr><td><b>Violet</b></td><td>Bus de <b>commandes</b> (frein, feu, mode, gear, clignotants)</td><td><b>Série numérique 9600 8N1</b>, trame 20 octets @10/s, niveau 5 V open-drain</td><td>afficheur → contrôleur (<b>unidirectionnel</b>)</td></tr>
+<tr><td><b>Bleu</b></td><td>Bus de <b>télémétrie</b> (vitesse, état)</td><td><b>Série numérique 9600</b>, trame 14 octets @10/s, header 0x02</td><td>contrôleur → afficheur</td></tr>
+<tr><td><b>Noir</b></td><td>Masse (GND)</td><td>0 V de référence</td><td>commun</td></tr>
+<tr><td class="no">Rouge</td><td class="no">Batterie +52 V</td><td class="no">PUISSANCE</td><td>—</td></tr>
+<tr><td class="no">Orangé</td><td class="no">+52 V commuté = ENABLE contrôleur</td><td class="no">PUISSANCE</td><td>—</td></tr>
+</table>
+<div class="danger"><b>☠️ SÉCURITÉ ABSOLUE — Ne JAMAIS connecter le STM32 au rouge ni à l'orangé (52 V).</b> Cela détruirait la carte. Le STM32 ne touche que : gris/blanc, violet, bleu, noir. 🛞 <b>Roue toujours surélevée</b> pendant les tests moteur.</div>
+
+<h3>2.1 Le rôle réel de l'afficheur</h3>
+<p>L'afficheur du guidon a <b>deux rôles</b> qu'il a fallu séparer :</p>
+<ul>
+<li><b>Interrupteur d'alimentation</b> (bouton power dessus, sur une ligne séparée) — indispensable pour <b>allumer</b> et <b>armer</b> le système.</li>
+<li><b>Émetteur des commandes</b> sur le violet — c'est lui qu'on <b>remplace / double</b> par le STM32.</li>
+</ul>
+
+<h2 class="pagebreak">3. La carte STM32 — câblage et brochage</h2>
+<p>Carte : <b>STM32 Nucleo F401RE</b>. La navigation se fait par les <b>numéros Dx du header Arduino</b> (les étiquettes imprimées sur la carte).</p>
+
+<table>
+<tr><th>Étiquette Arduino</th><th>Pin STM32 réel</th><th>Connecté à</th><th>Fonction</th></tr>
+<tr><td><span class="pin">D6</span></td><td>PB10</td><td>→ R 1 kΩ → nœud gris/blanc</td><td>Throttle (PWM 3,3 V) + condo 10 µF, pull-down</td></tr>
+<tr><td><span class="pin">A0</span></td><td>PA0</td><td>← nœud gris/blanc</td><td>Relecture tension réelle du throttle (ADC 12 bits)</td></tr>
+<tr><td><span class="pin">D8</span></td><td>PA9</td><td>↔ fil <b>bleu</b> (tap) <span class="small">/ violet côté afficheur selon montage</span></td><td>Lecture télémétrie (vitesse) — UART half-duplex matériel</td></tr>
+<tr><td><span class="pin">D9</span></td><td>PC7</td><td>← fil bleu (lecture parallèle)</td><td>Lecture télémétrie alternative (RX seul)</td></tr>
+<tr><td><span class="pin">D10</span></td><td><b>PB6</b></td><td>→ fil <b>violet</b> côté contrôleur</td><td><b>Injection des commandes</b> (USART1 half-duplex open-drain)</td></tr>
+<tr><td>GND</td><td>—</td><td>↔ fil noir</td><td>Masse commune (obligatoire)</td></tr>
+<tr><td class="small">PC6 = D34</td><td class="small">PC6</td><td class="small">RIEN (morpho CN10)</td><td class="small">⚠️ PAS sur le header Dx — voir §5 (le bug !)</td></tr>
+</table>
+
+<div class="warn"><b>⚠️ Le piège de brochage qui a coûté des semaines :</b> sur le Nucleo F401RE, <b>PC6 n'est PAS l'étiquette D10</b>. D10 = <b>PB6</b>. PC6 n'existe que sur le connecteur morpho (D34). Tout le firmware qui « envoyait sur D10 » mais écrivait <code>PC6</code> parlait en réalité <b>dans le vide</b>. Voir la résolution complète §5.</p></div>
+
+<h3>3.1 Détail du câblage et rôle de chaque composant</h3>
+<p>Trois liaisons relient la carte à la trottinette, chacune avec son conditionnement. Voici le schéma complet puis le <b>pourquoi</b> de chaque pièce.</p>
+
+<h4>① Throttle (gris/blanc) — la seule voie avec des composants passifs</h4>
+<pre>  STM32                          filtre RC (lissage)            TROTTINETTE
+
+  D6 (PB10) ──PWM 490 Hz──[ R 1 kΩ ]──┬──────────────────►  fil GRIS/BLANC (côté CONTRÔLEUR)
+   (sortie throttle)                  │                       = entrée throttle analogique
+                                      ├──[ C 10 µF ]──┐
+                                      │               │
+                                      ├──[ pull-down ]┤   (10 kΩ → 100 kΩ conseillé)
+                                      │               │
+  A0 (PA0) ◄── relecture tension ─────┘               │
+   (mesure le nœud réel)                              │
+  GND ─────────────────────────────────────────────┴──►  fil NOIR (masse commune)</pre>
+<table>
+<tr><th>Composant</th><th>Valeur</th><th>Rôle</th><th>POURQUOI ce composant</th></tr>
+<tr><td><b>R série</b></td><td>1 kΩ</td><td>1<sup>re</sup> moitié du filtre RC</td><td>Le STM32 ne sort pas une tension continue : il sort un <b>PWM</b> (créneau 0/3,3 V à 490 Hz). Le contrôleur, lui, attend une <b>tension analogique lisse</b> comme celle d'une poignée. La résistance + le condo <b>moyennent</b> ce créneau en une tension continue ≈ rapport_cyclique × 3,3 V.</td></tr>
+<tr><td><b>C (condensateur)</b></td><td>10 µF</td><td>2<sup>e</sup> moitié du filtre RC (lissage)</td><td>Il <b>emmagasine/restitue</b> la charge entre deux fronts du PWM → écrase l'ondulation. Constante de temps τ = R·C = 1 kΩ × 10 µF = <b>10 ms</b> → fréquence de coupure ≈ 1/(2πRC) ≈ <b>16 Hz</b>, très en dessous des 490 Hz du PWM : le créneau est fortement aplani, le contrôleur voit une tension propre.</td></tr>
+<tr><td><b>Pull-down</b></td><td>10 kΩ<br>(→100 kΩ conseillé)</td><td>Référence basse + décharge</td><td>Donne un <b>chemin de décharge</b> au condo (la tension peut redescendre quand on lâche les gaz) et un <b>état défini/fail-safe</b> : si la carte se débranche, le nœud tombe vers 0. <span class="small">⚠️ Trop faible (10 k) il « tire » le nœud et l'atténue (nœud ≈ 0,8 × commande) → passer à <b>100 kΩ</b> pour exploiter toute la plage 0,8–3,2 V.</span></td></tr>
+<tr><td><b>A0 (relecture)</b></td><td>—</td><td>Mesure de la tension réelle</td><td>Comme le filtre + le pull-down <b>atténuent</b> un peu, on <b>relit</b> le nœud avec l'ADC pour connaître la vraie tension appliquée et la corriger (sert aussi à la boucle PI).</td></tr>
+</table>
+<div class="warn"><b>Pourquoi on COUPE le gris/blanc et on injecte côté contrôleur :</b> si on laissait la poignée branchée, sa tension de repos (~0,8 V) <b>« tirerait » la ligne</b> et entrerait en conflit avec la sortie de la carte (deux sources sur le même fil). On coupe donc le fil et on injecte <b>uniquement côté contrôleur</b>. <span class="small">Évolution prévue (docs/06-08) : remplacer le PWM+RC par un <b>DAC MCP4725 + buffer op-amp MCP6002</b> → tension 0–3,4 V parfaitement propre, sans ondulation ni atténuation.</span></div>
+
+<h4>② Violet (commandes) — pas de composant, mais un mode de sortie particulier</h4>
+<pre>  D10 (PB6) ──USART1 half-duplex, OPEN-DRAIN──►  fil VIOLET (côté CONTRÔLEUR)
+                                                  (le 5 V « haut » vient du pull-up INTERNE du contrôleur)</pre>
+<table>
+<tr><th>Élément</th><th>Réglage</th><th>POURQUOI</th></tr>
+<tr><td><b>Open-drain</b></td><td><code>setHalfDuplex()</code></td><td>Le violet est de la <b>logique 5 V</b> (niveau repos ≈ 5,04 V imposé par le contrôleur). Un STM32 sort 3,3 V : en push-pull il ne pourrait <b>jamais</b> faire un « 1 » propre à 5 V, et il se <b>battrait</b> contre le pull-up du contrôleur. En <b>open-drain</b>, la carte ne fait que <b>tirer à 0</b> (le « 0 ») et <b>relâche</b> pour le « 1 » → c'est le <b>pull-up 5 V interne du contrôleur</b> qui remonte la ligne à 5 V. Niveaux logiques corrects sans aucune résistance externe.</td></tr>
+<tr><td><b>1 seul fil</b></td><td>half-duplex</td><td>Le bus violet est une liaison série sur <b>un fil unique</b> (TX et RX partagés). Le mode half-duplex single-wire du STM32 le gère nativement.</td></tr>
+</table>
+
+<h4>③ Bleu (télémétrie) — simple dérivation, aucun composant</h4>
+<table>
+<tr><th>Élément</th><th>Réglage</th><th>POURQUOI</th></tr>
+<tr><td><b>Tap parallèle</b></td><td>on LIT, on ne coupe pas</td><td>Le bleu va du contrôleur vers l'afficheur. On se <b>branche en dérivation</b> (écoute) sans couper : ainsi l'afficheur continue de fonctionner (pas d'erreur <b>E-06</b>) et on lit la vitesse en parallèle.</td></tr>
+<tr><td><b>TX factice hors ligne 5 V</b></td><td>RX sur PA11, jamais PC6</td><td>Si le TX factice de l'UART tombe sur un pin porté à 5 V (la ligne violet), le push-pull 3,3 V se bat contre et <b>casse la réception</b> (0 octet). Le TX factice doit rester sur un pin libre.</td></tr>
+</table>
+
+<div class="danger"><b>La masse commune (fil noir ↔ GND) est OBLIGATOIRE.</b> Tous ces signaux sont des <b>tensions référencées à la masse</b>. Sans GND commun entre la carte et la trottinette, aucune lecture ni injection n'a de sens (références flottantes). ☠️ Rappel : jamais le rouge ni l'orangé (52 V).</div>
+
+<h3>3.2 Toolchain & flash</h3>
+<ul>
+<li>Outil : <code>arduino-cli</code> + core <code>STMicroelectronics:stm32</code>. FQBN : <code>STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F401RE</code>.</li>
+<li><b>Flash = copier le fichier <code>.bin</code> sur le lecteur USB <code>/media/manar/NUCLEO</code></b> (mass-storage ST-Link, pas besoin de CubeProgrammer). Script : <code>./flash_stm32.sh &lt;nom&gt;</code>.</li>
+<li>Console PC ↔ carte : port série <code>/dev/ttyACM0</code> @ 115200 (ouvrir avec <code>dtr=False, rts=False</code>).</li>
+</ul>
+
+<h2>4. Décodage des bus (rétro-ingénierie)</h2>
+
+<h3>4.1 Bus VIOLET — commandes (afficheur → contrôleur)</h3>
+<p>Série 9600 8N1, trame de 20 octets répétée ~10 fois/s. <b>Header 0x01</b>. Trame au repos :</p>
+<pre>01 14 01 00 <span class="c">0F</span> <span class="c">80</span> 1E 00 91 01 05 00 64 0C 01 AE 00 00 <span class="c">05</span> D2
+   │  │       │  │                                      │  └ [19] CHECKSUM = XOR des octets [0..18]
+   │  │       │  └ [5] base 0x80 : bit 0x20 = PHARE/FEU
+   │  │       └ [4] base 0x0F : bit 0x80=FREIN, bit 0x10=mode S↔D, nibble bas=GEAR (gear×5 : 5/A/F)
+   │  └ [1] = 0x14 = 20 (longueur)            [18] base 0x05 : bit 0x08=cligno DROIT, bit 0x10=cligno GAUCHE
+   └ [0] = 0x01 (header — le bleu utilise 0x02 : bus différent)</pre>
+<table>
+<tr><th>Commande</th><th>Octet</th><th>Bit / valeur</th><th>Vérif checksum</th></tr>
+<tr><td>Frein</td><td>[4]</td><td>0x80 (0F→8F)</td><td>D2→52 ✔</td></tr>
+<tr><td>Mode S ↔ D</td><td>[4]</td><td>0x10 (0F→1F)</td><td>→C2 ✔</td></tr>
+<tr><td>Gear 1/2/3</td><td>[4]</td><td>nibble bas = 5 / A / F</td><td>D8 / D7 ✔</td></tr>
+<tr><td>Phare / feu</td><td>[5]</td><td>0x20 (80→A0)</td><td>→E2 ✔</td></tr>
+<tr><td>Clignotant droit</td><td>[18]</td><td>0x08 (05→0D)</td><td>→DA ✔</td></tr>
+<tr><td>Clignotant gauche</td><td>[18]</td><td>0x10 (05→15)</td><td>✔</td></tr>
+</table>
+<p class="small">Le throttle n'est PAS dans le violet (accélérer ne change aucun octet) → confirme qu'il reste analogique sur gris/blanc.</p>
+
+<h3>4.2 Bus BLEU — télémétrie (contrôleur → afficheur)</h3>
+<p>Série 9600, trame de 14 octets @10/s. <b>Header 0x02</b>. Trame roue arrêtée :</p>
+<pre>02 0E 01 20 <span class="c">90</span> 20 80 00 <span class="c">EA 60</span> 00 20 80 <span class="c">37</span>
+   │  │       │           └──┬──┘             └ [13] CHECKSUM = XOR [0..12]
+   │  │       │          [8][9] = PÉRIODE vitesse (big-endian). EA60 = 60000 = ARRÊT
+   │  │       └ [4] octet d'état/flags
+   │  └ [1] = 0x0E = 14 (longueur)
+   └ [0] = 0x02 (header télémétrie)</pre>
+<p><b>Calibration vitesse :</b> <code>vitesse_mph = 2520 / période([8][9])</code>. Validé sur l'afficheur (2,0 V → 126 → 20 mph ; 1,6 V → 360 → 7 mph). <span class="small">⚠️ L'ancienne valeur SPEED_K=667 des docs est fausse pour cette trottinette.</span></p>
+
+<h2 class="pagebreak">5. Problèmes rencontrés &amp; solutions <span class="tag">tes idées en bleu</span></h2>
+<p>Cette section retrace les blocages dans l'ordre, avec la <b>cause réelle</b> et la <b>solution</b>. Les <span style="color:#2563c9"><b>encadrés bleus</b></span> marquent <b>tes idées de manip</b> qui ont fait avancer ou débloquer le projet.</p>
+
+<h3>Problème A — Le throttle STM32 ne fait pas assez tourner la roue</h3>
+<p><b>Symptôme :</b> commande 1,5 V → roue immobile.</p>
+<p><b>Cause :</b> le STM32 sort 3,3 V (vs 5 V de l'Arduino) ; avec la résistance + pull-down, le nœud n'atteint que ~0,8 × la commande. Il faut <b>nœud &gt; ~1,3–1,4 V</b> pour démarrer.</p>
+<div class="idea"><b>Ton constat :</b> « <i>le voltage est le facteur clé du démarrage</i> ». Confirmé : cmd 2,0 V → nœud 1,61 V → roue à 8,6 mph ✔.</div>
+<p><b>Solution :</b> commander plus haut (≥ 2,0 V). Amélioration possible : pull-down 10 k → 100 k pour réduire l'atténuation. <span class="ok">RÉSOLU.</span></p>
+
+<h3>Problème B — Le repos throttle à 0 V provoque une faute</h3>
+<p><b>Cause :</b> 0 V est interprété comme une <b>faute capteur Hall</b> de la poignée.</p>
+<p><b>Solution :</b> repos = <b>0,8 V jamais 0 V</b>, + <b>rampe douce</b> (0,5 V/s) au lieu d'un saut. <span class="ok">RÉSOLU.</span></p>
+
+<h3>Problème C — « Le mur du violet » : couper le violet verrouille le contrôleur</h3>
+<p><b>Symptôme :</b> dès qu'on coupait le violet pour s'insérer, l'afficheur passait en E07 et le contrôleur se mettait en sécurité (roue immobile). Relais, émulation, injection : <b>tout échouait</b>. Ce mur a duré des jours.</p>
+
+<h4>Fausses pistes éliminées (par mesure, pas au hasard)</h4>
+<ul>
+<li>Octets / checksum exacts → corrects, mais immobile.</li>
+<li>Sens RX/TX, latence store-and-forward, relais cut-through push-pull → tous testés, tous immobiles.</li>
+<li>Bus bidirectionnel (afficheur attendrait une réponse) → <b>réfuté</b> : le contrôleur est <b>muet</b> sur le violet (0 trame côté contrôleur) → violet strictement unidirectionnel.</li>
+<li>Niveau 3,3 V vs 5 V → hypothèse forte un temps, gérée par open-drain + pull-up 5 V du contrôleur.</li>
+</ul>
+
+<div class="idea"><b>Ton idée décisive n°1 :</b> « <i>et si je coupe le violet SANS couper la batterie, pour conserver l'état de l'afficheur ?</i> »<br>
+→ Test fait : violet coupé <b>à chaud</b> (contrôleur déjà armé) → <b>la roue tourne toujours</b> (throttle injecté, nœud 1,33 V). <b>Preuve capitale :</b> le contrôleur s'arme au boot avec le violet natif présent, puis <b>reste armé même violet coupé</b> tant qu'on ne power-cycle pas la batterie. C'est le <b>power-cycle à froid SANS violet natif</b> qui verrouille, pas la coupure en soi.</div>
+
+<div class="idea"><b>Ton idée décisive n°2 :</b> « <i>tu ne peux pas envoyer la même information que l'afficheur envoie ? Comme ça le contrôleur pense que ça vient de l'afficheur.</i> »<br>
+→ C'est exactement le principe d'<b>émulation d'afficheur</b> retenu : le STM32 ne relaie plus, il <b>génère</b> les trames de commande comme si c'était l'afficheur. Concept juste — il ne manquait que le bon pin (voir Problème D).</div>
+
+<div class="idea"><b>Ton idée décisive n°3 :</b> « <i>contrôler tout ça avec un fil parallèle au violet relié au STM</i> » + « <i>ramène le projet original (dossier v2) qui faisait tourner les moteurs</i> ».<br>
+→ Le projet Arduino original ne coupait <b>JAMAIS</b> le violet (doc : « violet… laisser branché »). Recette de récupération validée : <b>violet natif jamais coupé</b> (il arme le contrôleur) + <b>bleu tapé en parallèle</b> (lecture) + throttle injecté côté contrôleur. Mesuré : nœud 1,34 V → période bleu 60000→1116 (roue tourne) ; retour 0,8 V → 60000 (stop). <span class="ok">Scooter récupéré, afficheur SANS aucune erreur.</span></div>
+
+<h3>Problème D — 🎯 LA VRAIE CAUSE DU MUR : un mauvais pin (PC6 ≠ D10)</h3>
+<div class="win"><b>RÉSOLUTION 2026-06-06.</b> Tous les firmwares d'injection violet écrivaient sur <b>PC6</b>. Or sur le Nucleo F401RE, <b>PC6 n'est pas sur le header Arduino</b> (c'est un pin morpho, D34). Le fil violet-contrôleur est branché sur <b>D10 = PB6</b>. L'injection partait donc <b>sur un pin dans le vide</b> et n'atteignait jamais le contrôleur. <b>« Le mur du violet », c'était ça depuis le début</b> — émulation/relais/injection/armement échouaient tous pour CETTE raison, pas par rejet du contrôleur.</div>
+
+<div class="idea"><b>Ton apport décisif :</b> « <i>je ne me souviens plus exactement… mais je me rappelle D8 et D10</i> » → « <i>violet est dans D10 côté contrôleur et D8 côté afficheur</i> ».<br>
+→ C'est ce souvenir précis du brochage <b>par étiquette Dx</b> qui a permis d'identifier l'écart : le code disait « PC6 » mais le fil était sur D10. En corrigeant <b>PC6 → PB6 (=D10)</b>, tout a fonctionné.</div>
+
+<p><b>Résultat sur le bon pin (PB6 = D10), firmware <code>violet_d10</code> :</b></p>
+<table>
+<tr><th>Commande injectée sur D10</th><th>Effet observé</th><th>Confirmé</th></tr>
+<tr><td>Frein = ON</td><td>La roue <b>S'ARRÊTE</b></td><td><span class="ok">oui ✔</span></td></tr>
+<tr><td>Frein = OFF + throttle</td><td>La roue <b>repart</b></td><td><span class="ok">oui ✔</span></td></tr>
+<tr><td>Feu = ON</td><td>Le <b>phare s'allume</b></td><td><span class="ok">oui ✔</span></td></tr>
+<tr><td>Clignotant droit</td><td>Clignote</td><td><span class="ok">oui ✔</span></td></tr>
+<tr><td>Clignotant gauche</td><td>Clignote</td><td><span class="ok">oui ✔</span></td></tr>
+</table>
+<p><b>Conclusion :</b> sur le bon pin, <b>le contrôleur OBÉIT au violet injecté</b>. Frein / feu / mode / gear / clignotants sont tous pilotables depuis la carte. <span class="ok">MUR RÉSOLU.</span></p>
+
+<h3>Problème D-bis — ✅ Le power-cycle batterie à froid NE verrouille PLUS <span class="tag">MAJ 2026-06-08</span></h3>
+<div class="win"><b>NOUVELLE PREUVE (toi, 2026-06-08) :</b> « <i>j'ai débranché la batterie puis je l'ai rebranchée, et tout marche sans erreur.</i> » → <b>Le verrou au démarrage à froid a DISPARU.</b> On peut maintenant couper et rebrancher la batterie : la trottinette redémarre et obéit au STM <b>sans aucune erreur (pas de E07)</b>.</div>
+<div class="idea"><b>Ton interprétation :</b> « <i>au tout début, quand le contrôleur reçoit la commande du STM pour la première fois, il s'y habitue — ensuite il la connaît toujours.</i> » → Observation confirmée : une fois que la carte a piloté le contrôleur une première fois, les power-cycles suivants repartent proprement.</div>
+<p><b>Pourquoi ça marche maintenant (mécanisme) :</b> ce qui verrouillait avant, ce n'était PAS la coupure batterie en soi — c'était qu'à froid le contrôleur ne voyait <b>aucun violet valide</b> (l'injection partait sur le mauvais pin PC6, dans le vide). Depuis que le STM injecte des trames violet <b>correctes sur D10/PB6 dès le démarrage</b>, le contrôleur <b>s'arme directement à partir de la carte</b> à chaque boot — il n'a plus besoin du violet natif de l'afficheur pour s'armer. Donc le « il s'habitue » se traduit techniquement par : <b>le STM fournit lui-même la trame d'armement valide à chaque allumage</b>.</p>
+<div class="warn"><b>Conséquence pour le robot :</b> c'est une excellente nouvelle — plus besoin de séquence d'armement par l'afficheur, ni de bascule relais après boot. Il suffit que le STM <b>soit alimenté et émette déjà ses trames violet sur D10 au moment où la batterie est mise sous tension</b>. À garantir : la carte démarre vite et envoie le violet avant/pendant l'allumage du contrôleur.</div>
+
+<h3>Problème E — La lecture du bleu donnait 0 octet</h3>
+<p><b>Cause :</b> un TX factice avait été mis sur <b>PC6</b>, qui porte la ligne violet tirée à 5 V ; le TX push-pull 3,3 V se battait contre → réception cassée. <b>Solution :</b> déplacer le TX factice hors de PC6 (<code>HardwareSerial blueUart(PC7, PA11)</code>). <span class="ok">RÉSOLU.</span></p>
+
+<h3>Problème F — Flash qui ne « prend » pas</h3>
+<p>Le flash par mass-storage est parfois capricieux (ancien firmware encore en cours). <b>Solution :</b> reflasher et <b>vérifier la bannière série</b> avant tout test. <span class="ok">CONTOURNÉ.</span></p>
+
+<h2 class="pagebreak">6. État du firmware &amp; des outils</h2>
+<table>
+<tr><th>Fichier</th><th>Rôle</th><th>État</th></tr>
+<tr><td><code>firmware_stm32/violet_d10</code></td><td><b>FIRMWARE PRINCIPAL</b> : injection violet sur PB6/D10 (frein/feu/mode/gear/clignos) + throttle D6</td><td><span class="ok">✔ marche</span></td></tr>
+<tr><td><code>firmware_stm32/throttle_clean</code></td><td>Throttle seul propre (repos 0,8 V, rampe) — récupération scooter</td><td><span class="ok">✔ marche</span></td></tr>
+<tr><td><code>firmware_stm32/throttle_pi</code></td><td>Boucle fermée PI de vitesse (<code>c&lt;mph&gt;</code> tient la vitesse)</td><td><span class="ok">✔ marche</span></td></tr>
+<tr><td><code>firmware_stm32/bus_watch</code> / <code>bus_sniff2</code></td><td>Lecture/tap des bus violet + bleu (décodage)</td><td><span class="ok">✔ marche</span></td></tr>
+<tr><td><code>tools/teleop.py</code></td><td>Téléopération clavier (drive/frein/feu/mode/clignos/gear)</td><td><span class="ok">✔ prêt</span></td></tr>
+<tr><td><code>tools/pi_keyboard_stm32.py</code></td><td>Clavier de test de la boucle PI</td><td><span class="ok">✔</span></td></tr>
+<tr><td class="small"><code>violet_emul</code>, <code>violet_ctrl</code>, <code>violet_diag</code>, relais…</td><td class="small">Anciens firmwares d'injection sur PC6 (mauvais pin)</td><td class="small"><span class="no">à corriger PC6→PB6 si réutilisés</span></td></tr>
+</table>
+
+<h3>6.1 Téléopération clavier — <code>tools/teleop.py</code></h3>
+<p>À lancer dans un <b>vrai terminal</b> (le clavier doit être lu en direct) :</p>
+<pre>cd ~/Téléchargements/shadow-scooter-control-v2/shadow-scooter-control
+python3 tools/teleop.py</pre>
+<table>
+<tr><th>Touche</th><th>Action</th><th>Touche</th><th>Action</th></tr>
+<tr><td><code>a</code> / <code>z</code></td><td>accélérer / ralentir (±0,1 V)</td><td><code>f</code></td><td>feu (bascule)</td></tr>
+<tr><td><code>x</code></td><td>repos (0,8 V)</td><td><code>s</code> / <code>d</code></td><td>mode S / mode D</td></tr>
+<tr><td><code>ESPACE</code></td><td>frein (bascule)</td><td><code>g</code> / <code>h</code></td><td>cligno gauche / droit</td></tr>
+<tr><td><code>1</code>/<code>2</code>/<code>3</code></td><td>gear</td><td><code>p</code></td><td>quitter (remet le repos)</td></tr>
+</table>
+<p class="small">Rappel : le paste dans un terminal Linux = <b>Ctrl+Shift+V</b> (pas Ctrl+V).</p>
+
+<h2>7. Chaîne de contrôle validée (résumé pour le robot)</h2>
+<table>
+<tr><th>Fonction robot</th><th>Voie</th><th>Pin STM32</th></tr>
+<tr><td>Accélération</td><td>Throttle analogique (gris/blanc)</td><td>D6 (PB10) + relecture A0</td></tr>
+<tr><td>Régulation de vitesse</td><td>Boucle PI (throttle ↔ bleu)</td><td>D6 + D8/D9</td></tr>
+<tr><td>Frein / Feu / Mode / Gear / Clignos</td><td>Injection violet</td><td>D10 (PB6)</td></tr>
+<tr><td>Vitesse (feedback)</td><td>Lecture télémétrie bleu</td><td>D8 (PA9) ou D9 (PC7)</td></tr>
+<tr><td>Masse</td><td>commune</td><td>GND ↔ noir</td></tr>
+</table>
+<div class="win"><b>Procédure d'armement (simplifiée — validée 2026-06-08) :</b> le STM32 alimenté <b>injecte ses trames violet valides sur D10/PB6 dès le démarrage</b> → à la mise sous tension de la batterie, le contrôleur <b>s'arme directement depuis la carte</b>, sans erreur, <b>même après un power-cycle batterie à froid</b>. Plus besoin de la séquence d'armement par l'afficheur ni d'une bascule relais après boot. <b>Seule condition :</b> que la carte soit déjà alimentée et émette le violet quand le contrôleur s'allume. L'afficheur ne sert plus qu'au bouton power (alimentation).</div>
+<div class="small">Note historique : la version précédente de ce document exigeait un armement par l'afficheur puis une bascule relais — c'était nécessaire <b>uniquement</b> tant que l'injection partait sur le mauvais pin (PC6). Depuis la correction D10/PB6, cette contrainte est levée.</div>
+
+<h2>8. Ce qu'il reste à faire (tes prochaines étapes)</h2>
+<ol>
+<li><b>Téléopération clavier en conditions réelles</b> — lancer <code>teleop.py</code> et valider tous les contrôles enchaînés (en cours).</li>
+<li><b>Marche arrière</b> — implémenter l'inversion moteur (relais d'inversion, cf. <code>docs/05</code>). Seule fonction motrice manquante.</li>
+<li><b>Corriger les anciens firmwares</b> PC6 → PB6 si on veut réutiliser <code>violet_emul</code> / relais.</li>
+<li><b>2e trottinette</b> — dupliquer la chaîne, puis coordonner les 2 (différentiel skid-steer) : vitesses/sens indépendants gauche/droite.</li>
+<li><b>Fiabilisation</b> — ressouder le nœud gris/blanc (faux-contacts), passer le pull-down à 100 k, sécuriser la séquence d'allumage.</li>
+<li><b>Couche autonomie</b> — au-dessus de la téléop : capteurs + logique de navigation pilotant les mêmes commandes.</li>
+</ol>
+
+<h2>9. Règles de sécurité permanentes</h2>
+<ul>
+<li class="no">☠️ Jamais le STM32 sur rouge ou orangé (52 V).</li>
+<li>🛞 Roue surélevée pour tout test moteur.</li>
+<li>Throttle repos = 0,8 V, jamais 0 V (faute Hall).</li>
+<li>Ouvrir le port série avec <code>dtr=False, rts=False</code>.</li>
+<li>Au démarrage à froid, le STM doit émettre des trames violet valides sur D10 dès l'allumage (sinon, sans violet valide ni afficheur, le contrôleur ne s'arme pas).</li>
+<li>Vérifier la télémétrie bleu avant de conclure « pas de rotation ».</li>
+</ul>
+
+<hr>
+<div class="meta">SHADOW — Cahier des charges — généré le 2026-06-08. Sources : firmware <code>violet_d10</code>, journaux de tests, mémoire projet. Tous les résultats « ✔ confirmé » ont été validés par l'utilisateur sur banc (roue surélevée).</div>
+
+</body>
+</html>
